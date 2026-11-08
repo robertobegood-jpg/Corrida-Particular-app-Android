@@ -55,6 +55,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppRoot(state: AppState) {
+    VerificadorAtualizacao()
     val taxi by TaximetroState.dados.collectAsState()
 
     BackHandler(enabled = state.aba != Aba.TAXIMETRO) { state.aba = Aba.TAXIMETRO }

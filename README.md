@@ -56,7 +56,9 @@
 
 1. Baixe o arquivo `.apk` da [última versão](https://github.com/robertobegood-jpg/Corrida-Particular-app-Android/releases/latest) pelo celular.
 2. Abra o arquivo e permita **"instalar apps desconhecidos"** quando o Android pedir.
-3. Para atualizar, baixe a versão nova e instale por cima: os dados continuam salvos.
+3. **Atualizações:** a partir da versão 1.4, o próprio app avisa quando sai uma versão nova (ou em *Mais › Verificar atualizações*) e instala por cima com um toque. Os dados continuam salvos.
+
+> 💡 Prefere atualizar tudo num lugar só? Use o [Obtainium](https://github.com/ImranR98/Obtainium) (gratuito e de código aberto): adicione o link deste repositório e ele avisa e instala as novas versões.
 
 > Requer Android 8.0 ou superior.
 
@@ -73,6 +75,7 @@
 - **Não há servidor nem cadastro.** Clientes, corridas e configurações ficam só no seu celular.
 - A localização é usada apenas pelo taxímetro, durante a corrida.
 - Os endereços digitados são enviados à TomTom, com a **sua** chave, só para busca e cálculo de rota.
+- Para checar atualizações, o app consulta a página de Releases deste repositório no GitHub (nenhum dado seu é enviado).
 - O backup é um arquivo `.json` que você salva ou envia para onde quiser.
 
 ### Permissões
@@ -82,6 +85,7 @@
 | Notificações | Mostrar o taxímetro em andamento e os lembretes da agenda |
 | Contatos | Importar clientes (opcional) |
 | Internet | Busca de endereços e rotas na TomTom |
+| Instalar apps | Instalar as atualizações do próprio app (só quando você toca em "Atualizar") |
 
 ---
 

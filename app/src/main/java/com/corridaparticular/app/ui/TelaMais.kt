@@ -26,6 +26,7 @@ import com.corridaparticular.app.data.Calculo
 import com.corridaparticular.app.data.Repo
 import com.corridaparticular.app.data.Tarifas
 import com.corridaparticular.app.net.TomTom
+import com.corridaparticular.app.util.Atualizacao
 import com.corridaparticular.app.share.Compartilhar
 import com.corridaparticular.app.util.decimal
 import com.corridaparticular.app.util.paraDouble
@@ -42,6 +43,7 @@ const val URL_GITHUB = "https://github.com/robertobegood-jpg/Corrida-Particular-
 @Composable
 fun TelaMais(state: AppState) {
     val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
     var sub by rememberSaveable { mutableStateOf("") }
     if (sub.isNotEmpty()) BackHandler { sub = "" }
     when (sub) {
@@ -55,11 +57,19 @@ fun TelaMais(state: AppState) {
             ItemMenu(Icons.Filled.Backup, "Backup", "Exportar e importar clientes, corridas e ajustes") { sub = "backup" }
             ItemMenu(Icons.Filled.History, "Histórico de corridas", "Ganhos do dia e do mês") { state.aba = Aba.AGENDA }
             ItemMenu(Icons.Filled.Coffee, "Pagar um cafezinho ao Dev", "Gostou do app? Apoie o desenvolvimento pelo Pix") { sub = "cafe" }
+            ItemMenu(Icons.Filled.SystemUpdate, "Verificar atualizações", "Versão instalada: ${Atualizacao.versaoInstalada(ctx)}") {
+                scope.launch {
+                    ctx.toast("Verificando…")
+                    Atualizacao.verificar(ctx, manual = true)
+                        .onSuccess { v -> if (v != null) EstadoAtualizacao.disponivel = v else ctx.toast("Você já está na versão mais recente") }
+                        .onFailure { ctx.toast("Sem conexão com o GitHub. Tente mais tarde.") }
+                }
+            }
             ItemMenu(Icons.Filled.Code, "Código aberto", "Ver o projeto no GitHub, sugerir melhorias ou relatar problemas") {
                 ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(URL_GITHUB)))
             }
             Text(
-                "Corrida Particular • versão 1.3",
+                "Corrida Particular • versão 1.4",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),

@@ -115,7 +115,7 @@ private fun ResumoGanhos(historico: List<Corrida>, agora: Long) {
             Column(Modifier.weight(1f)) {
                 Hud("Este mês")
                 Text(mes.sumOf { it.valor }.reais(), style = Oficina.tipos.heading, color = c.inkStrong, maxLines = 1)
-                Text("${mes.size} corrida(s) · ${mes.sumOf { it.distanciaKm }.kmTexto()}", style = Oficina.tipos.bodySm, color = c.muted)
+                Text("${mes.size} corrida(s) · ${mes.sumOf { it.distanciaKm }.kmTexto().replace(' ', '\u00A0')}", style = Oficina.tipos.bodySm, color = c.muted)
             }
         }
     }
@@ -198,7 +198,7 @@ private fun LinhaCorrida(corrida: Corrida, state: AppState, atrasada: Boolean) {
 
         Column(Modifier.padding(start = 20.dp, end = 12.dp, top = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Trecho("De", corrida.origem.texto)
-            corrida.paradas.forEachIndexed { i, p -> Trecho("Parada ${i + 1}", p.texto) }
+            corrida.paradas.forEachIndexed { i, p -> Trecho("Parada${if (corrida.paradas.size > 1) " ${i + 1}" else ""}", p.texto) }
             Trecho("Para", corrida.destino.texto)
             if (corrida.distanciaKm > 0) {
                 Hud(corrida.distanciaKm.kmTexto() + if (corrida.bandeira2) " · bandeira 2" else "", cor = c.faint, modifier = Modifier.padding(top = 4.dp))
@@ -260,7 +260,8 @@ fun MenuEscopo.ItemMenuCorrida(texto: String, cor: Color = Oficina.cores.ink, on
 private fun Trecho(rotulo: String, texto: String) {
     if (texto.isBlank()) return
     Row(verticalAlignment = Alignment.Top) {
-        Hud(rotulo, cor = Oficina.cores.faint, modifier = Modifier.width(72.dp).padding(top = 3.dp))
+        Hud(rotulo, cor = Oficina.cores.faint, modifier = Modifier.width(76.dp).padding(top = 3.dp))
+        Spacer(Modifier.width(8.dp))
         Text(texto, style = Oficina.tipos.bodySm, color = Oficina.cores.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }

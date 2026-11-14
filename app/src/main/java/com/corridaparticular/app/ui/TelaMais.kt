@@ -95,7 +95,7 @@ fun TelaMais(state: AppState) {
                 }
                 Linha()
                 Hud(
-                    "Corrida Particular · versão ${Atualizacao.versaoInstalada(ctx)} · código aberto",
+                    "Corrida Particular · versão ${Atualizacao.versaoInstalada(ctx)}",
                     Modifier.padding(16.dp),
                     cor = c.faint,
                 )
@@ -315,7 +315,7 @@ internal fun TelaBackup(onVoltar: () -> Unit) {
         Secao("Fazer backup") {
             Text("Gera um arquivo com clientes, endereços, corridas, tarifas e configurações.", style = Oficina.tipos.bodySm, color = c.muted)
             BotaoAcao("Salvar arquivo no celular", Icons.Filled.SaveAlt, { salvarArquivo.launch(nomeArquivo()) }, Modifier.fillMaxWidth(), principal = true)
-            BotaoAcao("Enviar para Drive, e-mail ou WhatsApp", Icons.Filled.Share, {
+            BotaoAcao("Enviar por Drive ou WhatsApp", Icons.Filled.Share, {
                 val f = File(Compartilhar.pastaCompartilhar(ctx), nomeArquivo())
                 f.writeText(Repo.exportarJson())
                 Compartilhar.compartilharArquivo(ctx, f, "application/json", titulo = "Enviar backup")

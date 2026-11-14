@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -482,7 +483,10 @@ fun BarraInferior(abaAtual: Aba, onAba: (Aba) -> Unit, marcas: Map<Aba, Color> =
                         }
                     }
                     Spacer(Modifier.height(6.dp))
-                    Hud(aba.titulo, cor = frente, estilo = Oficina.tipos.hud.copy(letterSpacing = 0.06.em))
+                    // Fonte do rótulo cresce no máximo 10% com a "fonte grande" do Android, para caber na aba.
+                    val escala = LocalDensity.current.fontScale
+                    val tamanho = (10f * minOf(escala, 1.1f) / escala).sp
+                    Hud(aba.titulo, cor = frente, estilo = Oficina.tipos.hud.copy(fontSize = tamanho, letterSpacing = 0.04.em))
                 }
             }
         }
@@ -505,6 +509,7 @@ fun FaixaTaximetro(texto: String, detalhe: String, valor: String, onClick: () ->
         Hud(texto, cor = Visor.tinta)
         Spacer(Modifier.width(8.dp))
         Hud(detalhe, cor = Visor.apagado, modifier = Modifier.weight(1f))
+        Spacer(Modifier.width(8.dp))
         Text(valor, color = Visor.amarelo, style = Oficina.tipos.heading.copy(fontSize = 18.sp, lineHeight = 22.sp))
     }
 }

@@ -49,6 +49,10 @@
 
 ### ⚙️ Mais
 - Tarifas, dados do motorista (saem no orçamento e no recibo), chave TomTom, backup e restauração.
+- Tema escuro, claro ou o do sistema.
+
+### 🎨 Visual
+Segue o sistema visual **Oficina**, o mesmo do app [Em Dia](https://github.com/robertobegood-jpg/Manutencao-Veiculos-app-Android): cantos retos, linhas finas e tipografia Archivo, Inter, Geist Mono e Instrument Serif. A única cor própria é o **amarelo táxi**, no valor do taxímetro e no ícone.
 
 ---
 
@@ -107,7 +111,7 @@ Obrigado! 💛
 
 ## Para desenvolvedores
 
-Kotlin + Jetpack Compose, usando só as bibliotecas do Android e o [ZXing](https://github.com/zxing/zxing) (QR Code).
+Kotlin + Jetpack Compose, usando só as bibliotecas do Android e o [ZXing](https://github.com/zxing/zxing) (QR Code). Fontes sob a SIL Open Font License (veja `app/src/main/assets/fonts/licencas`).
 
 ```
 app/src/main/java/com/corridaparticular/app/
@@ -117,9 +121,12 @@ app/src/main/java/com/corridaparticular/app/
   taximetro/               serviço do taxímetro em segundo plano (GPS)
   share/                   mensagens de WhatsApp e geração de PDF
   agenda/                  lembretes das corridas agendadas
-  util/                    Pix, contatos, navegação e formatação
-  ui/                      telas
+  util/                    Pix, contatos, navegação, atualizações e formatação
+  ui/theme/                tema Oficina (cores, fontes) e o visor amarelo do taxímetro
+  ui/                      componentes Oficina e telas
 ```
+
+**Revisão visual:** um push no branch `revisao` roda os testes de tela ([Paparazzi](https://github.com/cashapp/paparazzi)) e publica os prints de todas as telas, nos temas claro e escuro, no branch `revisao-telas`.
 
 **Compilar:** abra a pasta no Android Studio e use *Build › Build APK(s)*, ou rode `./gradlew assembleDebug`. Sem a chave oficial, o APK sai assinado com a chave de debug padrão — funciona normalmente, mas não atualiza por cima da versão oficial.
 

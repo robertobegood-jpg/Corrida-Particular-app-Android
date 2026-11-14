@@ -338,7 +338,7 @@ private fun PainelEspera(d: TaxiDados) {
                 Text(duracaoTexto(d.msEsperaSessao), style = Oficina.tipos.displayMd, color = c.inkStrong)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    if (restante > 0) "Grátis por mais ${duracaoTexto(restante).removePrefix("00:")}. Depois, ${t.esperaPorMinuto.reais()}/min."
+                    if (restante > 0) "Grátis por mais ${duracaoTexto(restante).removePrefix("00:")}. Depois, ${t.esperaPorMinuto.reais()} por minuto."
                     else "Cobrando ${t.esperaPorMinuto.reais()} por minuto.",
                     style = Oficina.tipos.bodySm, color = c.muted,
                 )

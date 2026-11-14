@@ -176,7 +176,8 @@ internal fun EditarCliente(cliente: Cliente?, rascunho: Cliente?, onFechar: () -
 
     val c = Oficina.cores
     Tela(
-        titulo = if (cliente == null) "Novo *cliente*." else nome.ifBlank { "Editar *cliente*." },
+        titulo = if (cliente == null) "Novo *cliente*." else "Editar *cliente*.",
+        subtitulo = if (cliente != null) nome.ifBlank { null } else null,
         eyebrow = if (cliente == null) "Clientes · cadastro" else "Clientes · editar",
         onVoltar = onFechar,
         acoes = {

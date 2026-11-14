@@ -15,6 +15,13 @@
   <a href="https://github.com/robertobegood-jpg/Corrida-Particular-app-Android/issues"><b>💬 Sugestões e problemas</b></a>
 </p>
 
+<p align="center">
+  <img src="docs/prints/taximetro.png" width="200" alt="Taxímetro em corrida">
+  <img src="docs/prints/orcamento.png" width="200" alt="Orçamento com valor estimado">
+  <img src="docs/prints/agenda.png" width="200" alt="Agenda de corridas">
+  <img src="docs/prints/taximetro_claro.png" width="200" alt="Tema claro">
+</p>
+
 ---
 
 ## Funções

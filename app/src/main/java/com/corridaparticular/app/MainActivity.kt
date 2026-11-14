@@ -22,7 +22,7 @@ import com.corridaparticular.app.ui.theme.CorridaTheme
 import com.corridaparticular.app.ui.theme.FontesOficina
 import com.corridaparticular.app.ui.theme.Oficina
 import com.corridaparticular.app.ui.theme.Visor
-import com.corridaparticular.app.util.duracaoTexto
+import com.corridaparticular.app.util.minutosTexto
 import com.corridaparticular.app.util.kmTexto
 import com.corridaparticular.app.util.reais
 
@@ -101,7 +101,7 @@ fun EstruturaApp(state: AppState, conteudo: @Composable () -> Unit) {
         if (taxi.ativo && state.aba != Aba.TAXIMETRO) {
             FaixaTaximetro(
                 texto = if (taxi.pausado) "Pausado" else if (taxi.esperando) "Aguardando" else "Taxímetro",
-                detalhe = "${taxi.km.kmTexto()} · ${duracaoTexto(taxi.msTotal)}",
+                detalhe = "${taxi.km.kmTexto()} · ${minutosTexto(taxi.msTotal / 60_000.0)}",
                 valor = taxi.valor.reais(),
                 onClick = { state.aba = Aba.TAXIMETRO },
             )

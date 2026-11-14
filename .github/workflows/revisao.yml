@@ -1,0 +1,56 @@
+name: Revisão
+
+# Roda os testes dos cálculos e gera os prints das telas com dados extremos.
+# O resultado (prints + relatório dos testes) vai para o branch "revisao-telas".
+on:
+  push:
+    branches: [revisao]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  revisao:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Testes e prints
+        id: testes
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          chmod +x gradlew
+          ./gradlew recordPaparazziDebug --no-daemon --continue 2>&1 | tee gradle.log
+
+      - name: Publicar resultado no branch revisao-telas
+        if: always()
+        run: |
+          mkdir -p /tmp/saida
+          cp -r app/src/test/snapshots/images /tmp/saida/telas 2>/dev/null || true
+          mkdir -p /tmp/saida/testes
+          cp app/build/test-results/testDebugUnitTest/*.xml /tmp/saida/testes/ 2>/dev/null || true
+          grep -E '^(e:|w:)|FAILED|tests completed|BUILD' gradle.log > /tmp/saida/resumo.log || true
+          tail -150 gradle.log > /tmp/saida/gradle-final.log || true
+          echo "${{ steps.testes.outcome }}" > /tmp/saida/resultado.txt
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout --orphan revisao-telas
+          git rm -rfq . >/dev/null
+          git clean -fdxq
+          cp -r /tmp/saida/* .
+          git add -A
+          git commit -qm "Revisão de ${GITHUB_SHA::7}"
+          git push -f origin revisao-telas
+
+      - name: Falhar se os testes falharam
+        if: steps.testes.outcome != 'success'
+        run: exit 1

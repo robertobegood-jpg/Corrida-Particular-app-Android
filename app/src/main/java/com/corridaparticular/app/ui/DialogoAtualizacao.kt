@@ -1,6 +1,8 @@
 package com.corridaparticular.app.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import com.corridaparticular.app.ui.theme.Oficina
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -65,31 +67,20 @@ private fun DialogoAtualizacao(v: Atualizacao.Versao, onFechar: () -> Unit) {
         }
     }
 
-    AlertDialog(
-        onDismissRequest = { if (progresso == null) onFechar() },
-        title = { Text("Nova versão ${v.versao} disponível") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Seus clientes, corridas e configurações continuam salvos na atualização.")
-                if (v.notas.isNotBlank()) {
-                    Text("Novidades", fontWeight = FontWeight.SemiBold)
-                    Text(
-                        v.notas.take(1500),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState()),
-                    )
-                }
-                progresso?.let { p ->
-                    LinearProgressIndicator(progress = { p }, modifier = Modifier.fillMaxWidth())
-                    Text(if (p >= 1f) "Download concluído" else "Baixando… ${(p * 100).toInt()}%", style = MaterialTheme.typography.bodySmall)
-                }
+    val c = Oficina.cores
+    val baixando = progresso != null && apk == null
+    DialogoOficina(
+        titulo = "Versão ${v.versao} disponível",
+        eyebrow = "Atualização",
+        onDismiss = { if (progresso == null) onFechar() },
+        acoes = {
+            if (progresso == null) {
+                BotaoTexto("Pular", { Atualizacao.pularVersao(ctx, v.versao); onFechar() }, cor = c.muted)
+                BotaoTexto("Depois", onFechar, cor = c.muted)
             }
-        },
-        confirmButton = {
-            val baixando = progresso != null && apk == null
-            TextButton(
-                enabled = !baixando,
-                onClick = {
+            BotaoTexto(
+                if (apk != null) "Instalar" else "Atualizar",
+                {
                     val pronto = apk
                     if (pronto != null) {
                         instalarOuPedir(pronto)
@@ -102,15 +93,26 @@ private fun DialogoAtualizacao(v: Atualizacao.Versao, onFechar: () -> Unit) {
                         }
                     }
                 },
-            ) { Text(if (apk != null) "Instalar" else "Atualizar") }
+                habilitado = !baixando,
+            )
         },
-        dismissButton = {
-            if (progresso == null) {
-                Row {
-                    TextButton(onClick = { Atualizacao.pularVersao(ctx, v.versao); onFechar() }) { Text("Pular versão") }
-                    TextButton(onClick = onFechar) { Text("Depois") }
-                }
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Seus clientes, corridas e configurações continuam salvos na atualização.", style = Oficina.tipos.bodySm, color = c.muted)
+            if (v.notas.isNotBlank()) {
+                Hud("Novidades")
+                Text(
+                    v.notas.take(1500),
+                    style = Oficina.tipos.bodySm, color = c.ink,
+                    modifier = Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState()),
+                )
             }
-        },
-    )
+            progresso?.let { p ->
+                Box(Modifier.fillMaxWidth().height(2.dp).background(c.line)) {
+                    Box(Modifier.fillMaxWidth(p.coerceIn(0f, 1f)).height(2.dp).background(c.accent))
+                }
+                Hud(if (p >= 1f) "Download concluído" else "Baixando · ${(p * 100).toInt()}%")
+            }
+        }
+    }
 }

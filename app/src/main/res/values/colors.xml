@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_fundo">#F2B705</color>
+    <!-- Ícone: fundo escuro do Oficina (igual aos outros apps) com o táxi em amarelo -->
+    <color name="ic_fundo">#121316</color>
+    <color name="fundo_inicial">#121316</color>
 </resources>

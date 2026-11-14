@@ -23,6 +23,8 @@ import com.corridaparticular.app.net.Localizacao
 import com.corridaparticular.app.net.TomTom
 import com.corridaparticular.app.share.Compartilhar
 import com.corridaparticular.app.share.TipoDoc
+import com.corridaparticular.app.ui.theme.Oficina
+import com.corridaparticular.app.util.PT_BR
 import com.corridaparticular.app.util.dataHoraTexto
 import com.corridaparticular.app.util.kmTexto
 import com.corridaparticular.app.util.minutosTexto
@@ -116,14 +118,14 @@ fun TelaOrcamento(state: AppState) {
         } else salvarAgora()
     }
 
+    val c = Oficina.cores
     Tela(
-        titulo = if (form.editandoId != null) "Editar corrida" else "Orçamento",
-        acoes = {
-            IconButton(onClick = { limpar = true }) { Icon(Icons.Filled.DeleteSweep, "Limpar") }
-        },
+        titulo = if (form.editandoId != null) "Editar *corrida*." else "Quanto *custa*?",
+        eyebrow = "02/Orçamento",
+        acoes = { BotaoTexto("Limpar", { limpar = true }, cor = c.muted) },
     ) {
         Secao("Cliente") {
-            SeletorCliente(form.clienteId) { c -> form.aplicarCliente(c); if (c == null) { form.nome = ""; form.telefone = "" }; mudou() }
+            SeletorCliente(form.clienteId) { cli -> form.aplicarCliente(cli); if (cli == null) { form.nome = ""; form.telefone = "" }; mudou() }
             if (cliente == null) {
                 CampoTexto("Nome do cliente", form.nome, { form.nome = it })
                 CampoTexto("WhatsApp", form.telefone, { form.telefone = it }, teclado = KeyboardType.Phone, ajuda = "Com DDD. Ex.: 11 98765-4321")
@@ -149,57 +151,48 @@ fun TelaOrcamento(state: AppState) {
                 sugestoes = cliente?.destinos.orEmpty(), icone = Icons.Filled.Flag,
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { form.paradas.add(Endereco()); mudou() }) {
-                    Icon(Icons.Filled.AddLocationAlt, null); Spacer(Modifier.width(6.dp)); Text("Adicionar parada")
-                }
+                BotaoTexto("+ Parada", { form.paradas.add(Endereco()); mudou() })
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = {
+                BotaoTexto("⇅ Inverter", {
                     val o = form.origem; form.origem = form.destino; form.destino = o
                     form.paradas.reverse(); mudou()
-                }) {
-                    Icon(Icons.Filled.SwapVert, null); Spacer(Modifier.width(6.dp)); Text("Inverter")
-                }
+                }, cor = c.ink)
             }
             val pontosNav = pontosDaCorrida(form.origem, form.paradas.toList(), form.destino)
             if (pontosNav.isNotEmpty()) {
-                BotaoNavegar(pontosNav, Modifier.fillMaxWidth(), texto = "Abrir no GPS (Waze, Maps…)")
+                BotaoNavegar(pontosNav, Modifier.fillMaxWidth(), texto = "Abrir no GPS · Waze, Maps")
             }
             if (cliente != null && form.destino.texto.isNotBlank() && cliente.destinos.none { it.texto == form.destino.texto }) {
-                TextButton(onClick = {
+                BotaoTexto("★ Salvar destino no cadastro do cliente", {
                     Repo.salvarCliente(cliente.copy(destinos = cliente.destinos + form.destino))
                     ctx.toast("Destino salvo no cadastro de ${cliente.nome}")
-                }) {
-                    Icon(Icons.Filled.Star, null); Spacer(Modifier.width(6.dp)); Text("Salvar este destino no cadastro do cliente")
-                }
+                })
             }
         }
 
         Secao("Quando") {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    selected = form.dataHora == null,
-                    onClick = { form.dataHora = null; mudou() },
-                    label = { Text("Agora") },
-                    leadingIcon = { Icon(Icons.Filled.Bolt, null, Modifier.size(18.dp)) },
-                )
-                FilterChip(
-                    selected = form.dataHora != null,
-                    onClick = { escolherDataHora(ctx, form.dataHora) { form.dataHora = it; mudou() } },
-                    label = { Text(form.dataHora?.dataHoraTexto() ?: "Escolher data e hora") },
-                    leadingIcon = { Icon(Icons.Filled.Schedule, null, Modifier.size(18.dp)) },
-                )
-            }
+            Segmentado(
+                opcoes = listOf(false, true),
+                selecionada = form.dataHora != null,
+                rotulo = { agendado -> if (!agendado) "Agora" else form.dataHora?.dataHoraTexto() ?: "Escolher horário" },
+                onSelecionar = { agendado ->
+                    if (agendado) escolherDataHora(ctx, form.dataHora) { form.dataHora = it; mudou() }
+                    else { form.dataHora = null; mudou() }
+                },
+            )
             Text(
                 "O tempo de viagem usa a previsão de trânsito da TomTom para o horário escolhido.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = Oficina.tipos.bodySm, color = c.muted,
             )
         }
 
         Secao("Cálculo manual") {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Informar km e tempo manualmente", Modifier.weight(1f))
-                Switch(checked = form.manual, onCheckedChange = { form.manual = it; mudou() })
-            }
+            LinhaMarcavel(
+                texto = "Informar km e tempo manualmente",
+                marcado = form.manual,
+                onAlternar = { form.manual = it; mudou() },
+                subtitulo = "Para quando estiver sem internet ou sem a chave TomTom.",
+            )
             if (form.manual) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     CampoTexto("Distância", form.kmManual, { form.kmManual = it; mudou() }, Modifier.weight(1f), KeyboardType.Decimal, sufixo = "km")
@@ -210,22 +203,19 @@ fun TelaOrcamento(state: AppState) {
 
         CampoTexto("Observação para o cliente (opcional)", form.obs, { form.obs = it }, linhas = 2)
 
-        Button(
-            onClick = { calcular() },
-            enabled = !calculando,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-        ) {
-            if (calculando) {
-                CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                Spacer(Modifier.width(10.dp)); Text("Calculando…")
-            } else {
-                Icon(Icons.Filled.Calculate, null); Spacer(Modifier.width(8.dp)); Text("Calcular corrida", fontSize = 16.sp)
-            }
-        }
+        BotaoPrimario(
+            if (calculando) "Calculando…" else "Calcular corrida",
+            { calcular() },
+            Modifier.fillMaxWidth().height(56.dp),
+            habilitado = !calculando,
+            seta = !calculando,
+        )
 
         erro?.let {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                Text(it, Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onErrorContainer)
+            Row(verticalAlignment = Alignment.Top) {
+                PontoStatus(c.danger, Modifier.padding(top = 7.dp), tamanho = 6.dp)
+                Spacer(Modifier.width(8.dp))
+                Text(it, style = Oficina.tipos.bodySm, color = c.danger)
             }
         }
 
@@ -234,7 +224,7 @@ fun TelaOrcamento(state: AppState) {
 
     if (limpar) {
         Confirmar(
-            "Limpar orçamento?", "Todos os campos serão apagados.", "Limpar",
+            "Limpar orçamento?", "Todos os campos serão apagados.", "Limpar", perigo = true,
             onConfirmar = { form.limpar(); erro = null; limpar = false },
             onCancelar = { limpar = false },
         )
@@ -248,29 +238,47 @@ private fun CardResultado(state: AppState, r: Resultado, onAgendar: () -> Unit) 
     val tarifas by Repo.tarifas.collectAsState()
     val det = Calculo.estimativa(tarifas, r.km, r.minutos, r.bandeira2)
 
-    ElevatedCard(Modifier.fillMaxWidth(), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("VALOR ESTIMADO", style = MaterialTheme.typography.labelMedium)
-            Text(r.valor.reais(), fontSize = 36.sp, fontWeight = FontWeight.Bold)
-            HorizontalDivider()
+    val c = Oficina.cores
+    Moldura {
+        Hud("Valor estimado")
+        Spacer(Modifier.height(10.dp))
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text("R$", style = Oficina.tipos.heading.copy(fontSize = 20.sp, lineHeight = 24.sp), color = c.muted)
+            Spacer(Modifier.width(8.dp))
+            Text(String.format(PT_BR, "%,.2f", r.valor), style = Oficina.tipos.displayLg, color = c.inkStrong, maxLines = 1)
+        }
+        Spacer(Modifier.height(6.dp))
+        Hud(
+            "${r.km.kmTexto()} · ${minutosTexto(r.minutos)} · " + if (r.bandeira2) "Bandeira 2" else "Bandeira 1",
+            maxLinhas = 2,
+        )
+        Spacer(Modifier.height(16.dp))
+        Linha()
+        Spacer(Modifier.height(12.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             LinhaInfo("Distância", r.km.kmTexto())
             LinhaInfo("Tempo com trânsito", minutosTexto(r.minutos))
             if (r.minutosAtraso >= 1) LinhaInfo("Atraso por trânsito", "+" + minutosTexto(r.minutosAtraso))
             if (r.minutosSemTransito > 0 && r.minutosAtraso >= 1) LinhaInfo("Sem trânsito seria", minutosTexto(r.minutosSemTransito))
-            LinhaInfo("Tarifa", if (r.bandeira2) "Bandeira 2" else "Bandeira 1")
-            HorizontalDivider()
+        }
+        Spacer(Modifier.height(12.dp))
+        Linha()
+        Spacer(Modifier.height(12.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             LinhaInfo("Bandeirada", det.bandeirada.reais())
-            LinhaInfo("Km (${tarifas.porKm.reais()}/km)", det.km.reais())
-            LinhaInfo("Tempo (${tarifas.porMinuto.reais()}/min)", det.tempo.reais())
+            LinhaInfo("Km · ${tarifas.porKm.reais()}/km", det.km.reais())
+            LinhaInfo("Tempo · ${tarifas.porMinuto.reais()}/min", det.tempo.reais())
             if (det.adicionalB2 > 0) LinhaInfo("Adicional bandeira 2", det.adicionalB2.reais())
             if (det.aplicouMinimo) LinhaInfo("Valor mínimo aplicado", tarifas.valorMinimo.reais())
-            HorizontalDivider()
-            Text(
-                "Espera: ${tarifas.esperaGratisMin} min grátis no embarque e em cada parada; " +
-                    "depois ${tarifas.esperaPorMinuto.reais()}/min, somado ao valor final.",
-                style = MaterialTheme.typography.bodySmall,
-            )
         }
+        Spacer(Modifier.height(12.dp))
+        Linha()
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "Espera: ${tarifas.esperaGratisMin} min grátis no embarque e em cada parada; " +
+                "depois ${tarifas.esperaPorMinuto.reais()}/min, somado ao valor final.",
+            style = Oficina.tipos.bodySm, color = c.muted,
+        )
     }
 
     val previa = form.paraCorrida(Corrida.STATUS_AGENDADA)

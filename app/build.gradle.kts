@@ -4,6 +4,8 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    // Prints automáticos das telas nos testes (revisão visual antes de cada versão)
+    id("app.cash.paparazzi")
 }
 
 android {
@@ -14,8 +16,8 @@ android {
         applicationId = "com.corridaparticular.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.4"
+        versionCode = 6
+        versionName = "1.5"
     }
 
     // Assinatura oficial do app. A chave NÃO fica no repositório:
@@ -87,4 +89,5 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
+    testImplementation("junit:junit:4.13.2")
 }

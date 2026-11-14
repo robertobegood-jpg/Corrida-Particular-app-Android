@@ -25,6 +25,11 @@ import com.corridaparticular.app.agenda.Lembrete
 import com.corridaparticular.app.data.Calculo
 import com.corridaparticular.app.data.Repo
 import com.corridaparticular.app.data.Tarifas
+import com.corridaparticular.app.data.Tema
+import com.corridaparticular.app.data.TemaStore
+import com.corridaparticular.app.ui.theme.Oficina
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import com.corridaparticular.app.net.TomTom
 import com.corridaparticular.app.util.Atualizacao
 import com.corridaparticular.app.share.Compartilhar
@@ -51,49 +56,58 @@ fun TelaMais(state: AppState) {
         "tarifas" -> TelaTarifas { sub = "" }
         "backup" -> TelaBackup { sub = "" }
         "cafe" -> TelaCafezinho { sub = "" }
-        else -> Tela("Mais") {
-            ItemMenu(Icons.Filled.AttachMoney, "Tarifas", "Bandeirada, valor por km, minuto, hora parada e bandeira 2") { sub = "tarifas" }
-            ItemMenu(Icons.Filled.Settings, "Configurações", "Seus dados, chave TomTom e lembretes") { sub = "config" }
-            ItemMenu(Icons.Filled.Backup, "Backup", "Exportar e importar clientes, corridas e ajustes") { sub = "backup" }
-            ItemMenu(Icons.Filled.History, "Histórico de corridas", "Ganhos do dia e do mês") { state.aba = Aba.AGENDA }
-            ItemMenu(Icons.Filled.Coffee, "Pagar um cafezinho ao Dev", "Gostou do app? Apoie o desenvolvimento pelo Pix") { sub = "cafe" }
-            ItemMenu(Icons.Filled.SystemUpdate, "Verificar atualizações", "Versão instalada: ${Atualizacao.versaoInstalada(ctx)}") {
-                scope.launch {
-                    ctx.toast("Verificando…")
-                    Atualizacao.verificar(ctx, manual = true)
-                        .onSuccess { v -> if (v != null) EstadoAtualizacao.disponivel = v else ctx.toast("Você já está na versão mais recente") }
-                        .onFailure { ctx.toast("Sem conexão com o GitHub. Tente mais tarde.") }
+        else -> Tela(titulo = "Ajustes e *dados*.", eyebrow = "05/Mais", rolavel = false) {
+            val c = Oficina.cores
+            val tema by TemaStore.tema.collectAsState()
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                ItemMenu("Tarifas", "Bandeirada, km, minuto, hora parada, espera e bandeira 2.", { sub = "tarifas" })
+                Linha()
+                ItemMenu("Configurações", "Seus dados, chave TomTom e lembretes.", { sub = "config" })
+                Linha()
+                ItemMenu("Backup e restauração", "Clientes, corridas e ajustes num arquivo.", { sub = "backup" })
+                Linha()
+                ItemMenu("Histórico de corridas", "Ganhos do dia e do mês.", { state.aba = Aba.AGENDA })
+                Linha()
+                ItemMenu("Pague um cafezinho", "Apoie quem fez este app, via Pix.", { sub = "cafe" })
+                Linha()
+                ItemMenu("Verificar atualizações", "Versão instalada: ${Atualizacao.versaoInstalada(ctx)}.", {
+                    scope.launch {
+                        ctx.toast("Verificando…")
+                        Atualizacao.verificar(ctx, manual = true)
+                            .onSuccess { v -> if (v != null) EstadoAtualizacao.disponivel = v else ctx.toast("Você já está na versão mais recente") }
+                            .onFailure { ctx.toast("Sem conexão com o GitHub. Tente mais tarde.") }
+                    }
+                })
+                Linha()
+                ItemMenu("Código aberto", "Ver o projeto no GitHub, sugerir melhorias ou relatar problemas.", {
+                    ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(URL_GITHUB)))
+                })
+                Linha()
+                Column(Modifier.padding(16.dp)) {
+                    Hud("Tema")
+                    Spacer(Modifier.height(8.dp))
+                    Segmentado(
+                        opcoes = Tema.entries.toList(),
+                        selecionada = tema,
+                        rotulo = { it.rotulo },
+                        onSelecionar = { TemaStore.definir(it) },
+                    )
                 }
+                Linha()
+                Hud(
+                    "Corrida Particular · versão ${Atualizacao.versaoInstalada(ctx)} · código aberto",
+                    Modifier.padding(16.dp),
+                    cor = c.faint,
+                )
             }
-            ItemMenu(Icons.Filled.Code, "Código aberto", "Ver o projeto no GitHub, sugerir melhorias ou relatar problemas") {
-                ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(URL_GITHUB)))
-            }
-            Text(
-                "Corrida Particular • versão 1.4",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp),
-            )
         }
-    }
-}
-
-@Composable
-private fun ItemMenu(icone: ImageVector, titulo: String, descricao: String, onClick: () -> Unit) {
-    ElevatedCard(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        ListItem(
-            headlineContent = { Text(titulo, fontWeight = FontWeight.SemiBold) },
-            supportingContent = { Text(descricao) },
-            leadingContent = { Icon(icone, null, tint = MaterialTheme.colorScheme.primary) },
-            trailingContent = { Icon(Icons.Filled.ChevronRight, null) },
-        )
     }
 }
 
 // ------------------------------------------------------------------ Configurações
 
 @Composable
-private fun TelaConfig(onVoltar: () -> Unit) {
+internal fun TelaConfig(onVoltar: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val cfg = remember { Repo.config.value }
@@ -119,10 +133,13 @@ private fun TelaConfig(onVoltar: () -> Unit) {
         onVoltar()
     }
 
-    Tela("Configurações", onVoltar = onVoltar, acoes = {
-        IconButton(onClick = { salvar() }) { Icon(Icons.Filled.Check, "Salvar") }
-    }) {
-        Secao("Seus dados (aparecem no orçamento e no recibo)") {
+    Tela(
+        titulo = "Seus *dados*.",
+        eyebrow = "Mais · configurações",
+        onVoltar = onVoltar,
+        acoes = { BotaoTexto("Salvar", { salvar() }) },
+    ) {
+        Secao("Motorista · sai no orçamento e no recibo") {
             CampoTexto("Seu nome ou nome da empresa", nome, { nome = it })
             CampoTexto("Seu WhatsApp", fone, { fone = it }, teclado = KeyboardType.Phone)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -132,11 +149,11 @@ private fun TelaConfig(onVoltar: () -> Unit) {
             CampoTexto("Chave Pix (opcional)", pix, { pix = it })
         }
 
-        Secao("Rotas e trânsito – TomTom") {
+        Secao("Rotas e trânsito · TomTom") {
             Text(
                 "Para buscar endereços e calcular a rota com previsão de trânsito, crie uma chave gratuita no site da TomTom " +
                     "(menu “API Keys” depois do cadastro) e cole abaixo.",
-                style = MaterialTheme.typography.bodySmall,
+                style = Oficina.tipos.bodySm, color = Oficina.cores.muted,
             )
             CampoTexto("Chave da API TomTom", chave, { chave = it })
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -163,14 +180,14 @@ private fun TelaConfig(onVoltar: () -> Unit) {
             CampoTexto("Avisar antes da corrida", lembrete, { lembrete = it.filter { c -> c.isDigit() } }, teclado = KeyboardType.Number, sufixo = "minutos")
         }
 
-        Button(onClick = { salvar() }, Modifier.fillMaxWidth().height(52.dp)) { Text("Salvar") }
+        BotaoPrimario("Salvar", { salvar() }, Modifier.fillMaxWidth().height(56.dp))
     }
 }
 
 // ------------------------------------------------------------------ Tarifas
 
 @Composable
-private fun TelaTarifas(onVoltar: () -> Unit) {
+internal fun TelaTarifas(onVoltar: () -> Unit) {
     val ctx = LocalContext.current
     val t = remember { Repo.tarifas.value }
     var bandeirada by remember { mutableStateOf(t.bandeirada.decimal()) }
@@ -205,9 +222,13 @@ private fun TelaTarifas(onVoltar: () -> Unit) {
         onVoltar()
     }
 
-    Tela("Tarifas", onVoltar = onVoltar, acoes = {
-        IconButton(onClick = { salvar() }) { Icon(Icons.Filled.Check, "Salvar") }
-    }) {
+    val c = Oficina.cores
+    Tela(
+        titulo = "Quanto *cobrar*.",
+        eyebrow = "Mais · tarifas",
+        onVoltar = onVoltar,
+        acoes = { BotaoTexto("Salvar", { salvar() }) },
+    ) {
         Secao("Valores") {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CampoTexto("Bandeirada", bandeirada, { bandeirada = it }, Modifier.weight(1f), KeyboardType.Decimal, prefixo = "R$ ")
@@ -221,7 +242,7 @@ private fun TelaTarifas(onVoltar: () -> Unit) {
             Text(
                 "• Orçamento: bandeirada + km + minutos de viagem (com trânsito).\n" +
                     "• Taxímetro: bandeirada + km rodado + tempo parado (abaixo de 10 km/h), cobrado pela hora parada.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = Oficina.tipos.bodySm, color = c.muted,
             )
         }
 
@@ -233,7 +254,7 @@ private fun TelaTarifas(onVoltar: () -> Unit) {
             Text(
                 "No taxímetro, toque em “Aguardando passageiro” ao chegar no embarque ou numa parada. " +
                     "O tempo grátis vale para cada espera; passou dele, cada minuto é somado ao valor da corrida.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = Oficina.tipos.bodySm, color = c.muted,
             )
         }
 
@@ -243,29 +264,26 @@ private fun TelaTarifas(onVoltar: () -> Unit) {
                 CampoTexto("Das (hora)", b2Ini, { b2Ini = it.filter { c -> c.isDigit() }.take(2) }, Modifier.weight(1f), KeyboardType.Number, sufixo = "h")
                 CampoTexto("Até (hora)", b2Fim, { b2Fim = it.filter { c -> c.isDigit() }.take(2) }, Modifier.weight(1f), KeyboardType.Number, sufixo = "h")
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Domingo o dia todo", Modifier.weight(1f))
-                Switch(checked = b2Dom, onCheckedChange = { b2Dom = it })
-            }
-            Text("Use o mesmo horário nos dois campos para desativar o horário noturno.", style = MaterialTheme.typography.bodySmall)
+            LinhaMarcavel("Domingo o dia todo", b2Dom, { b2Dom = it })
+            Text("Use o mesmo horário nos dois campos para desativar o horário noturno.", style = Oficina.tipos.bodySm, color = c.muted)
         }
 
         val ex = Calculo.estimativa(montar(), 10.0, 25.0, false)
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-            Text(
-                "Exemplo: corrida de 10 km e 25 min = ${ex.total.reais()}",
-                Modifier.padding(14.dp), fontWeight = FontWeight.SemiBold,
-            )
+        Moldura {
+            Hud("Exemplo · 10 km e 25 min")
+            Spacer(Modifier.height(6.dp))
+            Text(ex.total.reais(), style = Oficina.tipos.displayMd, color = c.inkStrong)
+            Text("Com bandeira 2: ${Calculo.estimativa(montar(), 10.0, 25.0, true).total.reais()}", style = Oficina.tipos.bodySm, color = c.muted)
         }
 
-        Button(onClick = { salvar() }, Modifier.fillMaxWidth().height(52.dp)) { Text("Salvar tarifas") }
+        BotaoPrimario("Salvar tarifas", { salvar() }, Modifier.fillMaxWidth().height(56.dp))
     }
 }
 
 // ------------------------------------------------------------------ Backup
 
 @Composable
-private fun TelaBackup(onVoltar: () -> Unit) {
+internal fun TelaBackup(onVoltar: () -> Unit) {
     val ctx = LocalContext.current
     val clientes by Repo.clientes.collectAsState()
     val corridas by Repo.corridas.collectAsState()
@@ -288,13 +306,14 @@ private fun TelaBackup(onVoltar: () -> Unit) {
         }
     }
 
-    Tela("Backup", onVoltar = onVoltar) {
+    val c = Oficina.cores
+    Tela(titulo = "Seus dados *seguros*.", eyebrow = "Mais · backup", onVoltar = onVoltar) {
         Secao("Seus dados") {
             LinhaInfo("Clientes", clientes.size.toString())
             LinhaInfo("Corridas (agenda + histórico)", corridas.size.toString())
         }
         Secao("Fazer backup") {
-            Text("Gera um arquivo com clientes, endereços, corridas, tarifas e configurações.", style = MaterialTheme.typography.bodySmall)
+            Text("Gera um arquivo com clientes, endereços, corridas, tarifas e configurações.", style = Oficina.tipos.bodySm, color = c.muted)
             BotaoAcao("Salvar arquivo no celular", Icons.Filled.SaveAlt, { salvarArquivo.launch(nomeArquivo()) }, Modifier.fillMaxWidth(), principal = true)
             BotaoAcao("Enviar para Drive, e-mail ou WhatsApp", Icons.Filled.Share, {
                 val f = File(Compartilhar.pastaCompartilhar(ctx), nomeArquivo())
@@ -305,7 +324,7 @@ private fun TelaBackup(onVoltar: () -> Unit) {
         Secao("Restaurar") {
             Text(
                 "Atenção: restaurar substitui todos os dados atuais pelos do arquivo.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error,
+                style = Oficina.tipos.bodySm, color = c.danger,
             )
             BotaoAcao("Importar arquivo de backup", Icons.Filled.Restore, {
                 abrirArquivo.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*"))
@@ -318,6 +337,7 @@ private fun TelaBackup(onVoltar: () -> Unit) {
             "Restaurar backup?",
             "Os dados atuais serão substituídos.",
             "Restaurar",
+            perigo = true,
             onConfirmar = {
                 pendente = null
                 Repo.importarJson(texto)

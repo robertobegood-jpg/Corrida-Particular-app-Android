@@ -1,11 +1,11 @@
 package com.corridaparticular.app.ui
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Calculate
-import androidx.compose.material.icons.filled.LocalTaxi
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Calculate
+import androidx.compose.material.icons.outlined.LocalTaxi
+import androidx.compose.material.icons.outlined.PeopleAlt
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -18,11 +18,11 @@ import com.corridaparticular.app.data.Repo
 import com.corridaparticular.app.data.novoId
 
 enum class Aba(val titulo: String, val icone: ImageVector) {
-    TAXIMETRO("Taxímetro", Icons.Filled.LocalTaxi),
-    ORCAMENTO("Orçamento", Icons.Filled.Calculate),
-    AGENDA("Agenda", Icons.Filled.CalendarMonth),
-    CLIENTES("Clientes", Icons.Filled.People),
-    MAIS("Mais", Icons.Filled.Menu),
+    TAXIMETRO("Taxímetro", Icons.Outlined.LocalTaxi),
+    ORCAMENTO("Orçamento", Icons.Outlined.Calculate),
+    AGENDA("Agenda", Icons.Outlined.CalendarMonth),
+    CLIENTES("Clientes", Icons.Outlined.PeopleAlt),
+    MAIS("Mais", Icons.Filled.MoreHoriz),
 }
 
 /** Dados que vão para o taxímetro quando ele é aberto a partir de outra tela. */

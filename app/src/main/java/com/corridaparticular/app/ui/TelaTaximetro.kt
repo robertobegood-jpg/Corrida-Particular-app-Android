@@ -1,27 +1,27 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.corridaparticular.app.ui
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.corridaparticular.app.agenda.Lembrete
 import com.corridaparticular.app.data.Calculo
 import com.corridaparticular.app.data.Corrida
@@ -33,6 +33,9 @@ import com.corridaparticular.app.share.TipoDoc
 import com.corridaparticular.app.taximetro.TaxiDados
 import com.corridaparticular.app.taximetro.TaximetroService
 import com.corridaparticular.app.taximetro.TaximetroState
+import com.corridaparticular.app.ui.theme.Oficina
+import com.corridaparticular.app.ui.theme.Visor
+import com.corridaparticular.app.util.PT_BR
 import com.corridaparticular.app.util.duracaoTexto
 import com.corridaparticular.app.util.kmTexto
 import com.corridaparticular.app.util.minutosTexto
@@ -43,24 +46,108 @@ import kotlinx.coroutines.flow.update
 @Composable
 fun TelaTaximetro(state: AppState) {
     val d by TaximetroState.dados.collectAsState()
-    Tela("Taxímetro") {
-        when {
-            d.ativo -> Rodando(d)
-            d.finalizado -> Resumo(d, state)
-            else -> Preparar(state)
+    val tarifas by Repo.tarifas.collectAsState()
+    when {
+        d.ativo -> Tela(
+            titulo = if (d.pausado) "Corrida *pausada*." else if (d.esperando) "Aguardando *passageiro*." else "Em *corrida*.",
+            eyebrow = "01/Taxímetro · " + if (d.bandeira2) "Bandeira 2" else "Bandeira 1",
+        ) { Rodando(d) }
+        d.finalizado -> Tela(
+            titulo = "Corrida *finalizada*.",
+            eyebrow = "01/Taxímetro · Recibo",
+            subtitulo = d.clienteNome.ifBlank { null },
+        ) { Resumo(d, state) }
+        else -> Tela(
+            titulo = "Pronto para *rodar*.",
+            eyebrow = "01/Taxímetro",
+            subtitulo = "Bandeirada ${tarifas.bandeirada.reais()} · ${tarifas.porKm.reais()}/km · ${tarifas.porHoraParada.reais()}/h parada.",
+        ) { Preparar(state) }
+    }
+}
+
+/* ───────────── Visor ───────────── */
+
+/** Número sem o "R$", para o visor: 1.234,56 */
+private fun numero(v: Double): String = String.format(PT_BR, "%,.2f", v)
+
+/** Diminui a fonte do valor conforme o número cresce, para caber em telas estreitas. */
+private fun tamanhoValor(texto: String, base: Int): TextUnit = when {
+    texto.length <= 6 -> base.sp
+    texto.length <= 8 -> (base * 0.84f).sp
+    else -> (base * 0.7f).sp
+}
+
+/**
+ * Visor do taxímetro: painel escuro fixo (igual nos dois temas), com marcas de canto,
+ * o valor em amarelo táxi e os indicadores logo abaixo.
+ */
+@Composable
+private fun VisorTaximetro(
+    status: String,
+    statusCor: androidx.compose.ui.graphics.Color,
+    direita: String,
+    valor: Double,
+    apagado: Boolean,
+    indicadores: List<Pair<String, String>>,
+    rodape: String? = null,
+) {
+    val t = Oficina.tipos
+    Moldura(fundo = Visor.fundo, linha = Visor.linha, marcas = Oficina.cores.lineStrong) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PontoStatus(statusCor, tamanho = 6.dp)
+            Spacer(Modifier.width(8.dp))
+            Hud(status, cor = Visor.apagado, modifier = Modifier.weight(1f))
+            Hud(direita, cor = Visor.amarelo)
+        }
+        Spacer(Modifier.height(14.dp))
+        val n = numero(valor)
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text("R$", style = t.heading.copy(fontSize = 22.sp, lineHeight = 26.sp), color = if (apagado) Visor.apagado else Visor.amarelo)
+            Spacer(Modifier.width(8.dp))
+            Text(
+                n,
+                style = t.displayLg.copy(fontSize = tamanhoValor(n, 64), lineHeight = tamanhoValor(n, 66)),
+                color = if (apagado) Visor.apagado else Visor.amarelo,
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
+        Spacer(Modifier.height(18.dp))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Visor.linha))
+        Spacer(Modifier.height(14.dp))
+        indicadores.chunked(2).forEachIndexed { i, par ->
+            if (i > 0) Spacer(Modifier.height(14.dp))
+            Row(Modifier.fillMaxWidth()) {
+                par.forEach { (rotulo, v) ->
+                    Column(Modifier.weight(1f)) {
+                        Hud(rotulo, cor = Visor.apagado)
+                        Spacer(Modifier.height(2.dp))
+                        Text(v, style = t.heading.copy(fontSize = 22.sp, lineHeight = 28.sp), color = Visor.tinta, maxLines = 1)
+                    }
+                }
+                if (par.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+        if (rodape != null) {
+            Spacer(Modifier.height(14.dp))
+            Text(rodape, style = t.bodySm, color = Visor.apagado)
         }
     }
 }
 
+/* ───────────── Preparar ───────────── */
+
 @Composable
 private fun Preparar(state: AppState) {
     val ctx = LocalContext.current
+    val c = Oficina.cores
     val tarifas by Repo.tarifas.collectAsState()
     val prep = state.taxiPreparo
     var clienteId by remember(prep) { mutableStateOf(prep.clienteId) }
     var nome by remember(prep) { mutableStateOf(prep.nome) }
     var fone by remember(prep) { mutableStateOf(prep.telefone) }
-    var bandeira2 by remember(prep) { mutableStateOf(Calculo.ehBandeira2(tarifas, System.currentTimeMillis())) }
+    val sugestaoB2 = remember(prep, tarifas) { Calculo.ehBandeira2(tarifas, System.currentTimeMillis()) }
+    var bandeira2 by remember(prep) { mutableStateOf(sugestaoB2) }
     var comecarEsperando by remember(prep) { mutableStateOf(false) }
 
     fun iniciar() {
@@ -101,18 +188,24 @@ private fun Preparar(state: AppState) {
     val pedir = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { iniciar() }
 
     if (prep.agendadaId != null) {
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-            Text(
-                "Corrida agendada${if (prep.origem.texto.isNotBlank()) " – saída: ${prep.origem.texto}" else ""}",
-                Modifier.padding(12.dp),
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                PontoStatus(c.accent, tamanho = 6.dp)
+                Spacer(Modifier.width(8.dp))
+                Hud("Corrida agendada", cor = c.accentInk)
+            }
+            if (prep.origem.texto.isNotBlank()) {
+                Text("Saída: ${prep.origem.texto}", style = Oficina.tipos.bodySm, color = c.muted)
+            }
+            Spacer(Modifier.height(4.dp))
+            LinhaSangrada()
         }
     }
 
     Secao("Cliente") {
-        SeletorCliente(clienteId) { c ->
-            clienteId = c?.id
-            if (c == null) { nome = ""; fone = "" }
+        SeletorCliente(clienteId) { cli ->
+            clienteId = cli?.id
+            if (cli == null) { nome = ""; fone = "" }
         }
         if (clienteId == null) {
             CampoTexto("Nome do passageiro (opcional)", nome, { nome = it })
@@ -121,129 +214,96 @@ private fun Preparar(state: AppState) {
     }
 
     Secao("Espera do passageiro") {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Já estou no local, aguardando", fontWeight = FontWeight.SemiBold)
-                Text(
-                    "${tarifas.esperaGratisMin} min grátis, depois ${tarifas.esperaPorMinuto.reais()}/min",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Switch(checked = comecarEsperando, onCheckedChange = { comecarEsperando = it })
-        }
+        LinhaMarcavel(
+            texto = "Já estou no local, aguardando",
+            marcado = comecarEsperando,
+            onAlternar = { comecarEsperando = it },
+            subtitulo = "${tarifas.esperaGratisMin} min grátis, depois ${tarifas.esperaPorMinuto.reais()}/min.",
+        )
     }
 
-    Secao("Tarifa") {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(if (bandeira2) "Bandeira 2 (+${tarifas.bandeira2Pct.toInt()}%)" else "Bandeira 1", fontWeight = FontWeight.SemiBold)
-                Text(
-                    "Bandeirada ${tarifas.bandeirada.reais()} • ${tarifas.porKm.reais()}/km • ${tarifas.porHoraParada.reais()}/h parada",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Switch(checked = bandeira2, onCheckedChange = { bandeira2 = it })
-        }
+    Secao("Bandeira") {
+        Segmentado(
+            opcoes = listOf(false, true),
+            selecionada = bandeira2,
+            rotulo = { if (it) "Bandeira 2 · +${tarifas.bandeira2Pct.toInt()}%" else "Bandeira 1" },
+            onSelecionar = { bandeira2 = it },
+        )
+        Text(
+            if (sugestaoB2) "Sugerida a bandeira 2 pelo horário ou dia." else "Sugerida a bandeira 1 pelo horário.",
+            style = Oficina.tipos.bodySm, color = c.muted,
+        )
     }
 
-    Button(
+    BotaoPrimario(
+        "Iniciar corrida",
         onClick = {
-            val falta = permissoes.any {
-                androidx.core.content.ContextCompat.checkSelfPermission(ctx, it) != android.content.pm.PackageManager.PERMISSION_GRANTED
-            }
+            val falta = permissoes.any { ContextCompat.checkSelfPermission(ctx, it) != PackageManager.PERMISSION_GRANTED }
             if (falta) pedir.launch(permissoes) else iniciar()
         },
-        modifier = Modifier.fillMaxWidth().height(64.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = AmareloTaxi, contentColor = Color.Black),
-    ) {
-        Icon(Icons.Filled.PlayArrow, null)
-        Spacer(Modifier.width(8.dp))
-        Text("INICIAR CORRIDA", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-    }
+        modifier = Modifier.fillMaxWidth().height(56.dp),
+        seta = true,
+    )
 
     Text(
         "O taxímetro continua contando enquanto você usa as outras abas, com a tela bloqueada ou em outro app. " +
             "O valor aparece também na barra de notificações.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = Oficina.tipos.bodySm,
+        color = c.muted,
     )
 }
+
+/* ───────────── Rodando ───────────── */
 
 @Composable
 private fun Rodando(d: TaxiDados) {
     val ctx = LocalContext.current
+    val c = Oficina.cores
     var confirmarFim by remember { mutableStateOf(false) }
 
-    Card(
-        colors = CardDefaults.cardColors(containerColor = PainelEscuro),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    if (d.gpsOk) Icons.Filled.GpsFixed else Icons.Filled.GpsOff, null,
-                    tint = if (d.gpsOk) Color(0xFF81C784) else Color(0xFFE57373), modifier = Modifier.size(16.dp)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    when {
-                        d.pausado -> "PAUSADO"
-                        d.gpsOk -> "GPS ok" + if (d.precisao > 0) " (±${d.precisao.toInt()} m)" else ""
-                        else -> "Procurando sinal de GPS…"
-                    },
-                    color = Color(0xFFB0B8C4), style = MaterialTheme.typography.labelMedium,
-                )
-                Spacer(Modifier.weight(1f))
-                Text(if (d.bandeira2) "BANDEIRA 2" else "BANDEIRA 1", color = AmareloTaxi, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(10.dp))
-            Text(
-                d.valor.reais(),
-                color = if (d.pausado) Color(0xFF9AA0A6) else AmareloTaxi,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                fontSize = 52.sp,
-            )
-            if (d.clienteNome.isNotBlank()) Text(d.clienteNome, color = Color.White)
-            Spacer(Modifier.height(16.dp))
-            Row(Modifier.fillMaxWidth()) {
-                Indicador("Distância", d.km.kmTexto(), Modifier.weight(1f))
-                Indicador("Tempo", duracaoTexto(d.msTotal), Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(10.dp))
-            Row(Modifier.fillMaxWidth()) {
-                Indicador("Parado", duracaoTexto(d.msParado), Modifier.weight(1f))
-                Indicador("Velocidade", "${d.velocidadeKmh.toInt()} km/h", Modifier.weight(1f))
-            }
-        }
-    }
+    VisorTaximetro(
+        status = when {
+            d.pausado -> "Pausado"
+            d.gpsOk -> "GPS ok" + if (d.precisao > 0) " · ±${d.precisao.toInt()} m" else ""
+            else -> "Procurando GPS…"
+        },
+        statusCor = when {
+            d.pausado -> c.ambar
+            d.gpsOk -> Visor.verde
+            else -> Visor.vermelho
+        },
+        direita = if (d.bandeira2) "Bandeira 2" else "Bandeira 1",
+        valor = d.valor,
+        apagado = d.pausado,
+        indicadores = listOf(
+            "Distância" to d.km.kmTexto(),
+            "Tempo" to duracaoTexto(d.msTotal),
+            "Parado" to duracaoTexto(d.msParado),
+            "Velocidade" to "${d.velocidadeKmh.toInt()} km/h",
+        ),
+        rodape = d.clienteNome.ifBlank { null },
+    )
 
     PainelEspera(d)
 
     PainelNavegacao(d)
 
     Secao("Bandeira") {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Usar bandeira 2", Modifier.weight(1f))
-            Switch(checked = d.bandeira2, onCheckedChange = { TaximetroState.definirBandeira2(ctx, it) })
-        }
+        Segmentado(
+            opcoes = listOf(false, true),
+            selecionada = d.bandeira2,
+            rotulo = { if (it) "Bandeira 2" else "Bandeira 1" },
+            onSelecionar = { TaximetroState.definirBandeira2(ctx, it) },
+        )
     }
 
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         if (d.pausado) {
-            BotaoAcao("Retomar", Icons.Filled.PlayArrow, { TaximetroState.comando(ctx, TaximetroService.ACAO_RETOMAR) }, Modifier.weight(1f).height(56.dp))
+            BotaoPrimario("Retomar", { TaximetroState.comando(ctx, TaximetroService.ACAO_RETOMAR) }, Modifier.weight(1f).height(56.dp))
         } else {
-            BotaoAcao("Pausar", Icons.Filled.Pause, { TaximetroState.comando(ctx, TaximetroService.ACAO_PAUSAR) }, Modifier.weight(1f).height(56.dp))
+            BotaoSecundario("Pausar", { TaximetroState.comando(ctx, TaximetroService.ACAO_PAUSAR) }, Modifier.weight(1f).height(56.dp))
         }
-        Button(
-            onClick = { confirmarFim = true },
-            modifier = Modifier.weight(1f).height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-        ) {
-            Icon(Icons.Filled.Stop, null); Spacer(Modifier.width(8.dp)); Text("Finalizar")
-        }
+        BotaoSecundario("Finalizar", { confirmarFim = true }, Modifier.weight(1f).height(56.dp), perigo = true)
     }
 
     if (confirmarFim) {
@@ -251,6 +311,7 @@ private fun Rodando(d: TaxiDados) {
             titulo = "Finalizar corrida?",
             texto = "Valor atual: ${d.valor.reais()}",
             confirmar = "Finalizar",
+            perigo = true,
             onConfirmar = { confirmarFim = false; TaximetroState.comando(ctx, TaximetroService.ACAO_FINALIZAR) },
             onCancelar = { confirmarFim = false },
         )
@@ -258,16 +319,90 @@ private fun Rodando(d: TaxiDados) {
 }
 
 @Composable
-private fun Indicador(rotulo: String, valor: String, modifier: Modifier = Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(rotulo.uppercase(), color = Color(0xFF8C96A3), style = MaterialTheme.typography.labelSmall)
-        Text(valor, color = Color.White, fontFamily = FontFamily.Monospace, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+private fun PainelEspera(d: TaxiDados) {
+    val ctx = LocalContext.current
+    val c = Oficina.cores
+    val t by Repo.tarifas.collectAsState()
+    val cobradoTotal = Calculo.valorEspera(t, d.msEsperaCobrada(t))
+
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Hud("Espera do passageiro", modifier = Modifier.weight(1f))
+            if (cobradoTotal > 0) Hud("+ ${cobradoTotal.reais()}", cor = c.ink)
+        }
+        if (d.esperando) {
+            val restante = d.msGratisRestante(t)
+            Moldura {
+                Hud(if (restante > 0) "Tempo grátis" else "Cobrando", cor = if (restante > 0) c.verdeInk else c.ambarInk)
+                Spacer(Modifier.height(4.dp))
+                Text(duracaoTexto(d.msEsperaSessao), style = Oficina.tipos.displayMd, color = c.inkStrong)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    if (restante > 0) "Grátis por mais ${duracaoTexto(restante).removePrefix("00:")}. Depois, ${t.esperaPorMinuto.reais()}/min."
+                    else "Cobrando ${t.esperaPorMinuto.reais()} por minuto.",
+                    style = Oficina.tipos.bodySm, color = c.muted,
+                )
+            }
+            BotaoPrimario(
+                "Passageiro embarcou",
+                { TaximetroState.definirEspera(ctx, false) },
+                Modifier.fillMaxWidth(), seta = true,
+            )
+        } else {
+            Text(
+                "Use ao chegar no embarque ou numa parada. ${t.esperaGratisMin} min grátis; depois ${t.esperaPorMinuto.reais()}/min, somado automaticamente.",
+                style = Oficina.tipos.bodySm, color = c.muted,
+            )
+            BotaoSecundario(
+                "Aguardando passageiro",
+                { TaximetroState.definirEspera(ctx, true) },
+                Modifier.fillMaxWidth(), habilitado = !d.pausado,
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        LinhaSangrada()
     }
 }
 
 @Composable
+private fun PainelNavegacao(d: TaxiDados) {
+    val c = Oficina.cores
+    var destino by remember(d.inicio) { mutableStateOf(d.destino) }
+
+    // Embarque, paradas programadas e destino (da agenda ou do orçamento)
+    val pontos = pontosDaCorrida(d.origem, d.paradas, destino)
+
+    Secao("Navegação") {
+        if (d.origem.texto.isNotBlank()) Trajeto("Embarque", d.origem.texto)
+        d.paradas.forEachIndexed { i, p -> Trajeto("Parada ${i + 1}", p.texto) }
+        CampoEndereco(
+            "Destino", destino,
+            { novo ->
+                destino = novo
+                TaximetroState.dados.update { it.copy(destino = novo) }
+            },
+            icone = Icons.Filled.Flag,
+        )
+        BotaoNavegar(pontos, Modifier.fillMaxWidth(), texto = "Abrir no GPS · Waze, Maps", principal = false)
+    }
+}
+
+/** Linha "EMBARQUE  Rua tal, 123". */
+@Composable
+private fun Trajeto(rotulo: String, texto: String) {
+    val c = Oficina.cores
+    Row(verticalAlignment = Alignment.Top) {
+        Hud(rotulo, modifier = Modifier.width(96.dp).padding(top = 3.dp))
+        Text(texto, style = Oficina.tipos.bodySm, color = c.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/* ───────────── Resumo ───────────── */
+
+@Composable
 private fun Resumo(d: TaxiDados, state: AppState) {
     val ctx = LocalContext.current
+    val c = Oficina.cores
     val agendada = remember(d.inicio) { Repo.corrida(d.agendadaId) }
     var origem by remember(d.inicio) { mutableStateOf(agendada?.origem ?: d.origem) }
     var destino by remember(d.inicio) { mutableStateOf(d.destino.takeIf { it.texto.isNotBlank() } ?: agendada?.destino ?: Endereco()) }
@@ -276,6 +411,7 @@ private fun Resumo(d: TaxiDados, state: AppState) {
     var salvo by remember(d.inicio) {
         mutableStateOf(Repo.corrida(d.agendadaId ?: "taxi_${d.inicio}")?.tipo == Corrida.TIPO_TAXIMETRO)
     }
+    val cobrada = Calculo.valorEspera(tarifasAtual, d.msEsperaCobradaFechada)
 
     fun montar(): Corrida {
         val base = agendada ?: Corrida(
@@ -294,7 +430,7 @@ private fun Resumo(d: TaxiDados, state: AppState) {
             minutosAtraso = 0.0,
             minutosParado = d.msParado / 60_000.0,
             minutosEspera = d.msEsperaTotal / 60_000.0,
-            valorEspera = Calculo.valorEspera(tarifasAtual, d.msEsperaCobradaFechada),
+            valorEspera = cobrada,
             valor = d.valor,
             bandeira2 = d.bandeira2,
             status = Corrida.STATUS_CONCLUIDA,
@@ -303,138 +439,62 @@ private fun Resumo(d: TaxiDados, state: AppState) {
         )
     }
 
-    Card(colors = CardDefaults.cardColors(containerColor = PainelEscuro), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("CORRIDA FINALIZADA", color = Color(0xFFB0B8C4), style = MaterialTheme.typography.labelMedium)
-            Text(d.valor.reais(), color = AmareloTaxi, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 48.sp)
-            if (d.clienteNome.isNotBlank()) Text(d.clienteNome, color = Color.White)
-            Spacer(Modifier.height(12.dp))
-            Row(Modifier.fillMaxWidth()) {
-                Indicador("Distância", d.km.kmTexto(), Modifier.weight(1f))
-                Indicador("Duração", minutosTexto(d.msTotal / 60_000.0), Modifier.weight(1f))
-                Indicador("Parado", minutosTexto(d.msParado / 60_000.0), Modifier.weight(1f))
-            }
-            if (d.msEsperaTotal > 0) {
-                Spacer(Modifier.height(10.dp))
-                val cobrada = Calculo.valorEspera(tarifasAtual, d.msEsperaCobradaFechada)
-                Text(
-                    "Espera: ${minutosTexto(d.msEsperaTotal / 60_000.0)}" +
-                        if (cobrada > 0) " • cobrado ${cobrada.reais()}" else " • dentro do tempo grátis",
-                    color = Color(0xFFB0B8C4),
-                )
-            }
-        }
-    }
+    VisorTaximetro(
+        status = "Corrida finalizada",
+        statusCor = Visor.verde,
+        direita = if (d.bandeira2) "Bandeira 2" else "Bandeira 1",
+        valor = d.valor,
+        apagado = false,
+        indicadores = buildList {
+            add("Distância" to d.km.kmTexto())
+            add("Duração" to minutosTexto(d.msTotal / 60_000.0))
+            add("Parado" to minutosTexto(d.msParado / 60_000.0))
+            if (d.msEsperaTotal > 0) add("Espera" to minutosTexto(d.msEsperaTotal / 60_000.0))
+        },
+        rodape = if (d.msEsperaTotal > 0) {
+            if (cobrada > 0) "Espera cobrada: ${cobrada.reais()} (já incluída)." else "Espera dentro do tempo grátis."
+        } else null,
+    )
 
-    Secao("Trajeto (para o recibo)") {
+    Secao("Trajeto · para o recibo") {
         CampoEndereco("Origem", origem, { origem = it }, icone = Icons.Filled.TripOrigin)
         CampoEndereco("Destino", destino, { destino = it }, localAtual = true, icone = Icons.Filled.Flag)
         CampoTexto("Observação (opcional)", obs, { obs = it })
     }
 
-    BotaoAcao(
-        if (salvo) "Salvo no histórico" else "Salvar no histórico",
-        if (salvo) Icons.Filled.CheckCircle else Icons.Filled.Save,
-        {
-            Lembrete.salvar(ctx, montar())
-            salvo = true
-            ctx.toast("Corrida salva no histórico")
-        },
-        Modifier.fillMaxWidth(), principal = true, habilitado = !salvo,
-    )
+    if (salvo) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PontoStatus(c.verde, tamanho = 6.dp)
+            Spacer(Modifier.width(8.dp))
+            Hud("Salvo no histórico", cor = c.verdeInk)
+        }
+    } else {
+        BotaoPrimario(
+            "Salvar no histórico",
+            {
+                Lembrete.salvar(ctx, montar())
+                salvo = true
+                ctx.toast("Corrida salva no histórico")
+            },
+            Modifier.fillMaxWidth(),
+        )
+    }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        BotaoAcao("Recibo texto", Icons.Filled.Sms, {
-            val c = montar()
-            Compartilhar.whatsappTexto(ctx, c.telefone, Compartilhar.texto(c, TipoDoc.RECIBO))
+        BotaoSecundario("Recibo texto", {
+            val corrida = montar()
+            Compartilhar.whatsappTexto(ctx, corrida.telefone, Compartilhar.texto(corrida, TipoDoc.RECIBO))
         }, Modifier.weight(1f))
-        BotaoAcao("Recibo PDF", Icons.Filled.PictureAsPdf, {
+        BotaoSecundario("Recibo PDF", {
             Compartilhar.whatsappPdf(ctx, montar(), TipoDoc.RECIBO)
         }, Modifier.weight(1f))
     }
-    TextButton(
-        onClick = {
+    BotaoTexto(
+        if (salvo) "+ Nova corrida" else "Salvar e iniciar nova corrida",
+        {
             if (!salvo) Lembrete.salvar(ctx, montar())
             TaximetroState.limpar()
             state.taxiPreparo = TaxiPreparo()
         },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Icon(Icons.Filled.Add, null); Spacer(Modifier.width(6.dp))
-        Text(if (salvo) "Nova corrida" else "Salvar e iniciar nova corrida")
-    }
-}
-
-@Composable
-private fun PainelEspera(d: TaxiDados) {
-    val ctx = LocalContext.current
-    val t by Repo.tarifas.collectAsState()
-    val cobradoTotal = Calculo.valorEspera(t, d.msEsperaCobrada(t))
-
-    ElevatedCard(
         Modifier.fillMaxWidth(),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = if (d.esperando) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow
-        ),
-    ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.HourglassTop, null, tint = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.width(8.dp))
-                Text("Espera do passageiro", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                if (cobradoTotal > 0) Text("+ ${cobradoTotal.reais()}", fontWeight = FontWeight.Bold)
-            }
-            if (d.esperando) {
-                val restante = d.msGratisRestante(t)
-                Text(duracaoTexto(d.msEsperaSessao), fontFamily = FontFamily.Monospace, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                Text(
-                    if (restante > 0) "Grátis por mais ${duracaoTexto(restante).removePrefix("00:")}. Depois, ${t.esperaPorMinuto.reais()}/min."
-                    else "Cobrando ${t.esperaPorMinuto.reais()} por minuto",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                Button(
-                    onClick = { TaximetroState.definirEspera(ctx, false) },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                ) {
-                    Icon(Icons.Filled.DirectionsCar, null); Spacer(Modifier.width(8.dp)); Text("Passageiro embarcou – seguir viagem")
-                }
-            } else {
-                Text(
-                    "Use ao chegar no embarque ou numa parada. ${t.esperaGratisMin} min grátis; depois ${t.esperaPorMinuto.reais()}/min, somado automaticamente.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                OutlinedButton(
-                    onClick = { TaximetroState.definirEspera(ctx, true) },
-                    enabled = !d.pausado,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                ) {
-                    Icon(Icons.Filled.HourglassTop, null); Spacer(Modifier.width(8.dp)); Text("Aguardando passageiro")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PainelNavegacao(d: TaxiDados) {
-    var destino by remember(d.inicio) { mutableStateOf(d.destino) }
-
-    // Embarque, paradas programadas e destino (da agenda ou do orçamento)
-    val pontos = pontosDaCorrida(d.origem, d.paradas, destino)
-
-    Secao("Navegação") {
-        if (d.origem.texto.isNotBlank()) Text("Embarque: ${d.origem.texto}", style = MaterialTheme.typography.bodySmall)
-        d.paradas.forEachIndexed { i, p ->
-            Text("Parada ${i + 1}: ${p.texto}", style = MaterialTheme.typography.bodySmall)
-        }
-        CampoEndereco(
-            "Destino", destino,
-            { novo ->
-                destino = novo
-                TaximetroState.dados.update { it.copy(destino = novo) }
-            },
-            icone = Icons.Filled.Flag,
-        )
-        BotaoNavegar(pontos, Modifier.fillMaxWidth(), texto = "Abrir no GPS (Waze, Maps…)", principal = true)
-    }
+    )
 }

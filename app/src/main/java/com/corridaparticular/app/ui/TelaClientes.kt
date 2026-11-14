@@ -16,6 +16,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.Sms
+import androidx.compose.ui.graphics.RectangleShape
+import com.corridaparticular.app.ui.theme.Oficina
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -71,88 +75,83 @@ fun TelaClientes(state: AppState) {
         busca.isBlank() || it.nome.contains(busca, true) || it.telefone.filter { ch -> ch.isDigit() }.contains(busca.filter { ch -> ch.isDigit() }.ifEmpty { "\u0000" })
     }
 
+    val c = Oficina.cores
     Tela(
-        titulo = "Clientes",
+        titulo = "Seus *clientes*.",
+        eyebrow = "04/Clientes",
+        subtitulo = if (clientes.isEmpty()) null else "${clientes.size} cadastrado(s).",
+        acoes = { BotaoTexto("+ Novo", { editando = NOVO }) },
         rolavel = false,
-        fab = {
-            ExtendedFloatingActionButton(
-                text = { Text("Novo cliente") },
-                icon = { Icon(Icons.Filled.PersonAdd, null) },
-                onClick = { editando = NOVO },
-            )
-        },
     ) {
-        OutlinedTextField(
-            value = busca,
-            onValueChange = { busca = it },
-            placeholder = { Text("Buscar cliente") },
-            leadingIcon = { Icon(Icons.Filled.Search, null) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp),
-        )
-        TextButton(onClick = importarContato, modifier = Modifier.padding(horizontal = 8.dp)) {
-            Icon(Icons.Filled.ContactPhone, null); Spacer(Modifier.width(8.dp)); Text("Importar dos contatos do celular")
-        }
-        LazyColumn(
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
+            item {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = busca,
+                        onValueChange = { busca = it },
+                        placeholder = { Text("Buscar por nome ou telefone") },
+                        leadingIcon = { Icon(Icons.Filled.Search, null) },
+                        singleLine = true,
+                        textStyle = Oficina.tipos.body,
+                        shape = RectangleShape,
+                        colors = coresCampo(),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    BotaoSecundario("Importar dos contatos do celular", importarContato, Modifier.fillMaxWidth())
+                }
+                Linha()
+            }
             if (lista.isEmpty()) {
                 item {
-                    Text(
-                        if (clientes.isEmpty()) "Nenhum cliente cadastrado.\nToque em “Novo cliente”." else "Nenhum cliente encontrado.",
-                        Modifier.fillMaxWidth().padding(top = 40.dp),
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            items(lista, key = { it.id }) { c ->
-                val total = corridas.count { it.clienteId == c.id }
-                OutlinedCard(Modifier.fillMaxWidth().clickable { editando = c.id }) {
-                    Column(Modifier.padding(start = 14.dp, top = 10.dp, end = 6.dp, bottom = 6.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Person, null, tint = MaterialTheme.colorScheme.primary)
-                            Spacer(Modifier.width(10.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(c.nome, fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    listOf(c.telefone, if (total > 0) "$total corrida(s)" else "").filter { it.isNotBlank() }.joinToString(" • "),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            if (c.telefone.isNotBlank()) {
-                                IconButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${c.telefone}"))) }) {
-                                    Icon(Icons.Filled.Phone, "Ligar")
-                                }
-                                IconButton(onClick = { Compartilhar.whatsappTexto(ctx, c.telefone, "Olá, ${c.nome.substringBefore(' ')}! ") }) {
-                                    Icon(Icons.Filled.Sms, "WhatsApp")
-                                }
-                            }
-                        }
-                        c.origens.firstOrNull()?.let {
-                            Text(
-                                "Origem: ${it.rotulo}",
-                                style = MaterialTheme.typography.bodySmall,
-                                maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(top = 4.dp),
-                            )
-                        }
-                        TextButton(onClick = { state.novoOrcamento(c) }) {
-                            Icon(Icons.Filled.Calculate, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Nova corrida / orçamento")
-                        }
+                    Column(Modifier.padding(16.dp)) {
+                        Text(
+                            if (clientes.isEmpty()) "Nenhum cliente cadastrado." else "Nenhum cliente encontrado.",
+                            style = Oficina.tipos.body, color = c.ink,
+                        )
+                        Text(
+                            if (clientes.isEmpty()) "Toque em “+ Novo” ou importe dos contatos." else "Confira o nome ou o número digitado.",
+                            style = Oficina.tipos.bodySm, color = c.muted,
+                        )
                     }
                 }
+            }
+            items(lista, key = { it.id }) { cli ->
+                val total = corridas.count { it.clienteId == cli.id }
+                Column(Modifier.fillMaxWidth().clickable { editando = cli.id }.padding(start = 16.dp, top = 14.dp, end = 4.dp, bottom = 6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(cli.nome, style = Oficina.tipos.body, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                listOf(cli.telefone, if (total > 0) "$total corrida(s)" else "").filter { it.isNotBlank() }.joinToString(" · ")
+                                    .ifBlank { "Sem telefone" },
+                                style = Oficina.tipos.bodySm, color = c.muted,
+                            )
+                        }
+                        if (cli.telefone.isNotBlank()) {
+                            IconButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${cli.telefone}"))) }) {
+                                Icon(Icons.Outlined.Phone, "Ligar", tint = c.ink)
+                            }
+                            IconButton(onClick = { Compartilhar.whatsappTexto(ctx, cli.telefone, "Olá, ${cli.nome.substringBefore(' ')}! ") }) {
+                                Icon(Icons.Outlined.Sms, "WhatsApp", tint = c.ink)
+                            }
+                        }
+                    }
+                    cli.origens.firstOrNull()?.let {
+                        Row(Modifier.padding(top = 6.dp, end = 12.dp), verticalAlignment = Alignment.Top) {
+                            Hud("Embarque", cor = c.faint, modifier = Modifier.width(84.dp).padding(top = 3.dp))
+                            Text(it.rotulo, style = Oficina.tipos.bodySm, color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                    BotaoTexto("Nova corrida  →", { state.novoOrcamento(cli) }, Modifier.offset(x = (-12).dp))
+                }
+                Linha()
             }
         }
     }
 }
 
 @Composable
-private fun EditarCliente(cliente: Cliente?, rascunho: Cliente?, onFechar: () -> Unit) {
+internal fun EditarCliente(cliente: Cliente?, rascunho: Cliente?, onFechar: () -> Unit) {
     val ctx = LocalContext.current
     val base = remember { cliente ?: rascunho ?: Cliente() }
     var nome by remember { mutableStateOf(base.nome) }
@@ -175,12 +174,14 @@ private fun EditarCliente(cliente: Cliente?, rascunho: Cliente?, onFechar: () ->
         onFechar()
     }
 
+    val c = Oficina.cores
     Tela(
-        titulo = if (cliente == null) "Novo cliente" else "Editar cliente",
+        titulo = if (cliente == null) "Novo *cliente*." else nome.ifBlank { "Editar *cliente*." },
+        eyebrow = if (cliente == null) "Clientes · cadastro" else "Clientes · editar",
         onVoltar = onFechar,
         acoes = {
-            if (cliente != null) IconButton(onClick = { excluir = true }) { Icon(Icons.Filled.Delete, "Excluir") }
-            IconButton(onClick = { salvar() }) { Icon(Icons.Filled.Check, "Salvar") }
+            if (cliente != null) BotaoTexto("Excluir", { excluir = true }, cor = c.danger)
+            BotaoTexto("Salvar", { salvar() })
         },
     ) {
         Secao("Dados") {
@@ -190,9 +191,7 @@ private fun EditarCliente(cliente: Cliente?, rascunho: Cliente?, onFechar: () ->
                     if (d.telefone.isNotBlank()) fone = d.telefone
                     d.enderecos.filter { e -> origens.none { it.texto == e.texto } }.forEach { origens.add(it) }
                 }
-                OutlinedButton(onClick = preencher, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Filled.ContactPhone, null); Spacer(Modifier.width(8.dp)); Text("Preencher com um contato do celular")
-                }
+                BotaoSecundario("Preencher com um contato", preencher, Modifier.fillMaxWidth())
             }
             CampoTexto("Nome *", nome, { nome = it })
             CampoTexto("WhatsApp / telefone", fone, { fone = it }, teclado = KeyboardType.Phone, ajuda = "Com DDD. Ex.: 11 98765-4321")
@@ -210,9 +209,7 @@ private fun EditarCliente(cliente: Cliente?, rascunho: Cliente?, onFechar: () ->
             itens = destinos,
         )
 
-        Button(onClick = { salvar() }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-            Icon(Icons.Filled.Save, null); Spacer(Modifier.width(8.dp)); Text("Salvar cliente")
-        }
+        BotaoPrimario("Salvar cliente", { salvar() }, Modifier.fillMaxWidth().height(56.dp))
     }
 
     if (excluir) {
@@ -220,6 +217,7 @@ private fun EditarCliente(cliente: Cliente?, rascunho: Cliente?, onFechar: () ->
             "Excluir cliente?",
             "O histórico de corridas dele continua salvo.",
             "Excluir",
+            perigo = true,
             onConfirmar = { excluir = false; Repo.excluirCliente(base.id); onFechar() },
             onCancelar = { excluir = false },
         )
@@ -229,11 +227,11 @@ private fun EditarCliente(cliente: Cliente?, rascunho: Cliente?, onFechar: () ->
 @Composable
 private fun ListaEnderecos(titulo: String, dica: String, itens: MutableList<Endereco>) {
     Secao(titulo) {
-        Text(dica, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(dica, style = Oficina.tipos.bodySm, color = Oficina.cores.muted)
         itens.forEachIndexed { i, e ->
             key(i) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (i > 0) HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                    if (i > 0) Linha(Modifier.padding(vertical = 6.dp))
                     CampoTexto("Apelido (ex.: Casa)", e.apelido, { itens[i] = e.copy(apelido = it) })
                     CampoEndereco(
                         "Endereço", e,
@@ -244,9 +242,7 @@ private fun ListaEnderecos(titulo: String, dica: String, itens: MutableList<Ende
                 }
             }
         }
-        TextButton(onClick = { itens.add(Endereco()) }) {
-            Icon(Icons.Filled.AddLocationAlt, null); Spacer(Modifier.width(6.dp)); Text("Adicionar endereço")
-        }
+        BotaoTexto("+ Adicionar endereço", { itens.add(Endereco()) }, Modifier.offset(x = (-12).dp))
     }
 }
 

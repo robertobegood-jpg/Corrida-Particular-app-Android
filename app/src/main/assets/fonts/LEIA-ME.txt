@@ -1,0 +1,14 @@
+FONTES DO SISTEMA OFICINA
+=========================
+
+Já incluídas, convertidas das versões WOFF do design system Oficina:
+
+  archivo.ttf                  Archivo (variável: peso 100–900, largura 62–125)
+  instrument_serif_italic.ttf  Instrument Serif Italic
+  inter.ttf                    Inter (variável: peso 100–900)
+  geist_mono.ttf               Geist Mono (variável: peso 100–900)
+
+Todas sob a SIL Open Font License 1.1. As licenças estão em licencas/.
+
+Se trocar algum arquivo, mantenha o mesmo nome. Em "Mais > Fontes Oficina"
+o app mostra se algum está faltando.

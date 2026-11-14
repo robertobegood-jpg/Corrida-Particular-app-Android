@@ -1,27 +1,27 @@
-@file:OptIn(ExperimentalLayoutApi::class)
-
 package com.corridaparticular.app
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocalTaxi
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.corridaparticular.app.data.Repo
+import com.corridaparticular.app.data.Tema
+import com.corridaparticular.app.data.TemaStore
 import com.corridaparticular.app.taximetro.TaximetroState
 import com.corridaparticular.app.ui.*
+import com.corridaparticular.app.ui.theme.CorridaTheme
+import com.corridaparticular.app.ui.theme.FontesOficina
+import com.corridaparticular.app.ui.theme.Oficina
+import com.corridaparticular.app.ui.theme.Visor
 import com.corridaparticular.app.util.duracaoTexto
 import com.corridaparticular.app.util.kmTexto
 import com.corridaparticular.app.util.reais
@@ -35,10 +35,24 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Repo.init(applicationContext)
-        enableEdgeToEdge()
+        TemaStore.init(applicationContext)
         abrirAbaDoIntent(intent)
+        val fontes = FontesOficina(applicationContext)
         setContent {
-            Tema { AppRoot(Sessao.app) }
+            val tema by TemaStore.tema.collectAsState()
+            val escuro = when (tema) {
+                Tema.ESCURO -> true
+                Tema.CLARO -> false
+                Tema.SISTEMA -> isSystemInDarkTheme()
+            }
+            // Ícones da barra de status acompanham o tema.
+            DisposableEffect(escuro) {
+                val estilo = if (escuro) SystemBarStyle.dark(Color.TRANSPARENT)
+                else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+                enableEdgeToEdge(statusBarStyle = estilo, navigationBarStyle = estilo)
+                onDispose { }
+            }
+            CorridaTheme(escuro = escuro, fontes = fontes) { AppRoot(Sessao.app) }
         }
     }
 
@@ -55,68 +69,47 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppRoot(state: AppState) {
-    VerificadorAtualizacao()
-    val taxi by TaximetroState.dados.collectAsState()
-
     BackHandler(enabled = state.aba != Aba.TAXIMETRO) { state.aba = Aba.TAXIMETRO }
-
-    Scaffold(
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        bottomBar = {
-            Column {
-                // Aviso do taxímetro ligado quando o motorista está em outra aba
-                if (taxi.ativo && state.aba != Aba.TAXIMETRO) {
-                    Surface(
-                        color = PainelEscuro,
-                        modifier = Modifier.fillMaxWidth().clickable { state.aba = Aba.TAXIMETRO },
-                    ) {
-                        Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.LocalTaxi, null, tint = AmareloTaxi)
-                            Spacer(Modifier.width(10.dp))
-                            Text(
-                                if (taxi.pausado) "Taxímetro pausado" else "Taxímetro rodando",
-                                color = Color.White, modifier = Modifier.weight(1f),
-                            )
-                            Text(
-                                "${taxi.km.kmTexto()} • ${duracaoTexto(taxi.msTotal)}  ",
-                                color = Color(0xFFB0B8C4), style = MaterialTheme.typography.bodySmall,
-                            )
-                            Text(taxi.valor.reais(), color = AmareloTaxi, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-                NavigationBar {
-                    Aba.entries.forEach { aba ->
-                        NavigationBarItem(
-                            selected = state.aba == aba,
-                            onClick = { state.aba = aba },
-                            icon = {
-                                if (aba == Aba.TAXIMETRO && taxi.ativo) {
-                                    BadgedBox(badge = { Badge(containerColor = AmareloTaxi) }) { Icon(aba.icone, aba.titulo) }
-                                } else {
-                                    Icon(aba.icone, aba.titulo)
-                                }
-                            },
-                            label = { Text(aba.titulo, maxLines = 1) },
-                        )
-                    }
-                }
-            }
-        },
-    ) { pad ->
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(pad)
-                .consumeWindowInsets(pad)
-        ) {
-            when (state.aba) {
-                Aba.TAXIMETRO -> TelaTaximetro(state)
-                Aba.ORCAMENTO -> TelaOrcamento(state)
-                Aba.AGENDA -> TelaAgenda(state)
-                Aba.CLIENTES -> TelaClientes(state)
-                Aba.MAIS -> TelaMais(state)
-            }
+    EstruturaApp(state) {
+        when (state.aba) {
+            Aba.TAXIMETRO -> TelaTaximetro(state)
+            Aba.ORCAMENTO -> TelaOrcamento(state)
+            Aba.AGENDA -> TelaAgenda(state)
+            Aba.CLIENTES -> TelaClientes(state)
+            Aba.MAIS -> TelaMais(state)
         }
+    }
+    VerificadorAtualizacao()
+    SeletorDataHoraHost()
+}
+
+/** Barra do topo, conteúdo da aba, faixa do taxímetro e menu inferior. */
+@Composable
+fun EstruturaApp(state: AppState, conteudo: @Composable () -> Unit) {
+    val taxi by TaximetroState.dados.collectAsState()
+    val c = Oficina.cores
+    val (statusTexto, statusCor) = when {
+        taxi.ativo && taxi.pausado -> "Pausado" to c.ambar
+        taxi.ativo && taxi.esperando -> "Aguardando" to Visor.amarelo
+        taxi.ativo -> "Em corrida" to Visor.amarelo
+        else -> "Livre" to c.verde
+    }
+
+    Column(Modifier.fillMaxSize().background(c.bg)) {
+        BarraSuperior(statusTexto, statusCor)
+        Box(Modifier.weight(1f).fillMaxWidth()) { conteudo() }
+        if (taxi.ativo && state.aba != Aba.TAXIMETRO) {
+            FaixaTaximetro(
+                texto = if (taxi.pausado) "Pausado" else if (taxi.esperando) "Aguardando" else "Taxímetro",
+                detalhe = "${taxi.km.kmTexto()} · ${duracaoTexto(taxi.msTotal)}",
+                valor = taxi.valor.reais(),
+                onClick = { state.aba = Aba.TAXIMETRO },
+            )
+        }
+        BarraInferior(
+            abaAtual = state.aba,
+            onAba = { state.aba = it },
+            marcas = if (taxi.ativo) mapOf(Aba.TAXIMETRO to Visor.amarelo) else emptyMap(),
+        )
     }
 }

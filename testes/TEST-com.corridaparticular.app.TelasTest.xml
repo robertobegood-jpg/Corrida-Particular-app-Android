@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.corridaparticular.app.TelasTest" tests="27" skipped="0" failures="0" errors="0" timestamp="2026-11-14T07:22:36" hostname="runnervmccnms" time="14.745">
+  <properties/>
+  <testcase name="orcamento_resultado" classname="com.corridaparticular.app.TelasTest" time="5.648"/>
+  <testcase name="taximetro_rodando_claro" classname="com.corridaparticular.app.TelasTest" time="0.381"/>
+  <testcase name="tarifas" classname="com.corridaparticular.app.TelasTest" time="0.694"/>
+  <testcase name="backup" classname="com.corridaparticular.app.TelasTest" time="0.239"/>
+  <testcase name="agenda_historico" classname="com.corridaparticular.app.TelasTest" time="0.509"/>
+  <testcase name="fontes" classname="com.corridaparticular.app.TelasTest" time="0.112"/>
+  <testcase name="orcamento_resultado_claro" classname="com.corridaparticular.app.TelasTest" time="0.755"/>
+  <testcase name="taximetro_rodando" classname="com.corridaparticular.app.TelasTest" time="0.482"/>
+  <testcase name="taximetro_preparar_claro" classname="com.corridaparticular.app.TelasTest" time="0.279"/>
+  <testcase name="agenda_proximas" classname="com.corridaparticular.app.TelasTest" time="0.393"/>
+  <testcase name="orcamento_vazio" classname="com.corridaparticular.app.TelasTest" time="0.411"/>
+  <testcase name="taximetro_preparar" classname="com.corridaparticular.app.TelasTest" time="0.266"/>
+  <testcase name="faixa_taximetro" classname="com.corridaparticular.app.TelasTest" time="0.151"/>
+  <testcase name="taximetro_fonte_grande" classname="com.corridaparticular.app.TelasTest" time="0.339"/>
+  <testcase name="mais" classname="com.corridaparticular.app.TelasTest" time="0.247"/>
+  <testcase name="agenda_fonte_grande" classname="com.corridaparticular.app.TelasTest" time="0.429"/>
+  <testcase name="taximetro_valor_alto" classname="com.corridaparticular.app.TelasTest" time="0.148"/>
+  <testcase name="taximetro_esperando" classname="com.corridaparticular.app.TelasTest" time="0.379"/>
+  <testcase name="taximetro_resumo" classname="com.corridaparticular.app.TelasTest" time="0.36"/>
+  <testcase name="agenda_claro" classname="com.corridaparticular.app.TelasTest" time="0.283"/>
+  <testcase name="agenda_vazia" classname="com.corridaparticular.app.TelasTest" time="0.131"/>
+  <testcase name="clientes" classname="com.corridaparticular.app.TelasTest" time="0.289"/>
+  <testcase name="mais_claro" classname="com.corridaparticular.app.TelasTest" time="0.235"/>
+  <testcase name="taximetro_pausado" classname="com.corridaparticular.app.TelasTest" time="0.181"/>
+  <testcase name="cliente_editar" classname="com.corridaparticular.app.TelasTest" time="0.548"/>
+  <testcase name="configuracoes" classname="com.corridaparticular.app.TelasTest" time="0.391"/>
+  <testcase name="cafezinho" classname="com.corridaparticular.app.TelasTest" time="0.458"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[Nov 14, 2026 7:22:39 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:42 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:42 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:43 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:43 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:44 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:44 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:44 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:45 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:45 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:46 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:46 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:46 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:46 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:47 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:47 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:47 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:48 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:48 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:48 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:49 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:49 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:49 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:49 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:49 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:50 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+Nov 14, 2026 7:22:50 AM app.cash.paparazzi.internal.PaparazziLogger logAndroidFramework
+INFO: Settings [3]: Can't get key animator_duration_scale from content://settings/global
+]]></system-err>
+</testsuite>
